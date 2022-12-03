@@ -59,7 +59,7 @@ Resources:
     Properties:
       Description: "Função Lambda para enviar um evento ao SQS - Zip"
       FunctionName: LambdaSend
-      Handler: lambdasend.handler
+      Handler: index.handler
       MemorySize: 128
       Role: !GetAtt PosLambdaRole.Arn
       Runtime: python3.9
@@ -103,7 +103,7 @@ Resources:
     Properties:
       Description: "Função Lambda para receber evento do SQS via log"
       FunctionName: LambdaRec
-      Handler: lambdarec.handler
+      Handler: index.handler
       MemorySize: 128
       Role: !GetAtt PosLambdaRole.Arn
       Runtime: python3.9
