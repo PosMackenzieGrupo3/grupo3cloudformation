@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Resolução Trabalho - Grupo 3"
+Resources:
+  GroupThreeIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - sqs.amazonaws.com
+                - dynamodb.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+
+  LambdaSendFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: "Função Lambda para enviar um evento ao SQS - Zip File"
+      FunctionName: LambdaSend
+      Handler: lambdasend.handler
+      MemorySize: 128
+      Role: !GetAtt BasicIAMRole.Arn
+      Runtime: python3.9
+      Timeout: 5
+      Code:
+        ZipFile: lambdasend
+      Tags:
+        - Key: Name
+          Value: lamdba_send_g3
+
+  LambdaRecFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: "Função Lambda para receber evento do SQS via log - Inline"
+      FunctionName: LambdaRec
+      Handler: lambdarec.handler
+      MemorySize: 128
+      Role: !GetAtt BasicIAMRole.Arn
+      Runtime: python3.9
+      Timeout: 5
+      Code:
+        ZipFile: |
+          import os
+          import json
+
+          def handler(event, context):
+            print("Event: {}".format(event))
+      Tags:
+        - Key: Name
+          Value: lamdba_rec_g3
