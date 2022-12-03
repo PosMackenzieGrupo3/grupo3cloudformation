@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Resolucao do Trabalho - Grupo 3"
+Resources:
+  PosLambdaRole:
+    Type: "AWS::IAM::Role"
+    DependsOn:
+      - PosQueue
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "pos-policy-lambda"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:SendMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ChangeMessageVisibility
+                Resource: !GetAtt PosQueue.Arn
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: "*"
+
+  PosQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "pos-queue"
+      MessageRetentionPeriod: 300
+      VisibilityTimeout: 60
+
+  SendLambdaLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pos-send-lambda"
+      RetentionInDays: 3
+
+  LambdaSendFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - SendLambdaLogGroup
+    Properties:
+      Description: "Função Lambda para enviar um evento ao SQS - Zip File"
+      FunctionName: LambdaSend
+      Handler: lambdasend.handler
+      MemorySize: 128
+      Role: !GetAtt PosLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 5
+      Code:
+        ZipFile: lambdasend.zip
+      Tags:
+        - Key: Name
+          Value: lamdba_send_g3
+
+  RecLambdaLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pos-rec-lambda"
+      RetentionInDays: 3
+
+  LambdaRecFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - RecLambdaLogGroup
+    Properties:
+      Description: "Função Lambda para receber evento do SQS via log - Inline"
+      FunctionName: LambdaRec
+      Handler: lambdarec.handler
+      MemorySize: 128
+      Role: !GetAtt PosLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 5
+      Code:
+        ZipFile: |
+          import os
+          import json
+
+          def handler(event, context):
+            print("Event: {}".format(event))
+      Tags:
+        - Key: Name
+          Value: lamdba_rec_g3
