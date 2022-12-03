@@ -57,7 +57,7 @@ Resources:
     DependsOn:
       - SendLambdaLogGroup
     Properties:
-      Description: "Função Lambda para enviar um evento ao SQS - Zip File"
+      Description: "Função Lambda para enviar um evento ao SQS - Zip"
       FunctionName: LambdaSend
       Handler: lambdasend.handler
       MemorySize: 128
@@ -65,7 +65,27 @@ Resources:
       Runtime: python3.9
       Timeout: 5
       Code:
-        ZipFile: lambdasend.zip
+        ZipFile: |
+          import json
+          import boto3
+
+          from datetime import datetime
+
+
+          def handler(event, context):
+
+              now = datetime.now()
+              current_time = now.strftime("%H:%M:%S %p")
+
+              sqs = boto3.client('sqs')
+              sqs.send_message(QueueUrl='https://sqs.us-east-1.amazonaws.com/697590689524/pos-queue',
+                              MessageBody='Test send message'
+                              )
+
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(current_time)
+              }
       Tags:
         - Key: Name
           Value: lamdba_send_g3
@@ -81,7 +101,7 @@ Resources:
     DependsOn:
       - RecLambdaLogGroup
     Properties:
-      Description: "Função Lambda para receber evento do SQS via log - Inline"
+      Description: "Função Lambda para receber evento do SQS via log"
       FunctionName: LambdaRec
       Handler: lambdarec.handler
       MemorySize: 128
